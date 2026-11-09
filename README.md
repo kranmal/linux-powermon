@@ -53,7 +53,7 @@ The button runs the helper `powermon-saver` as root through `pkexec` (you get a 
 | CPU governor (`scaling_governor`) | `powersave` |
 | CPU max frequency (`scaling_max_freq`) | lowest supported |
 | AMD GPU `power_dpm_force_performance_level` | `low` |
-| AMD GPU power cap (`power1_cap`) | its minimum |
+| AMD GPU power cap (`power1_cap`) | its minimum, **only if the driver reports a real minimum** (some cards report 0, so the cap is left alone) |
 
 While the saver is on, the button shows **how many watts it is saving**: `SAVER ON: saving ~41 W`. Powermon learns your normal wall draw whenever the saver is off (a running average, stored in `~/.local/share/powermon/baseline.json`), then shows that average minus the current draw. It is an estimate: it compares against your *typical* draw, so it reads high if you turn the saver on while idle after a busy period, and low in the opposite case. Until it has about 30 seconds of saver-off data it shows `no baseline`. Turn the saver off for a short while to let it learn.
 
@@ -65,7 +65,7 @@ Things to know:
 - On a mostly idle desktop the saving is modest (a few tens of watts at most). Measured on one Ryzen 5 3600 + AMD GPU desktop: about 148 W down to about 109 W.
 - **Multi-monitor:** forcing the lowest GPU level can cause flicker on some setups. Turn the saver off if you see it.
 - Cores are not taken offline, and no system services are stopped.
-- **Security:** `pkexec` runs the helper as root. Install it to a root-owned location with `./install.sh --system-helper` (to `/usr/local/bin`) so a user-level process cannot swap it out. Powermon prefers `/usr/local/bin/powermon-saver` over `~/.local/bin`. The helper only touches the fixed sysfs paths above and validates every value before writing.
+- **Security:** `pkexec` runs the helper as root. Install it to a root-owned location with `./install.sh --system-helper` (to `/usr/local/bin`) so a user-level process cannot swap it out. Powermon prefers `/usr/local/bin/powermon-saver` over `~/.local/bin`. The helper only touches the fixed sysfs paths above and validates every value before writing. It prints a count (`27/27 settings applied`) and names any setting it had to skip.
 - AMD GPU and `acpi-cpufreq`/`amd-pstate`/`intel_pstate` behaviour varies. On drivers where a file doesn't exist, that step is skipped.
 
 ## Requirements
