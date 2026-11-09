@@ -102,6 +102,19 @@ The first-run dialog asks for:
 
 Your bill may also have a daily standing charge. Powermon ignores it, because it doesn't depend on usage.
 
+## Positioning (important on Wayland)
+
+Wayland apps cannot place their own window, so the position is set with a KDE Plasma window rule. The helper also keeps the overlay below other windows and hides it from the taskbar, pager and Alt-Tab:
+
+```bash
+./kde-window-rule.sh X Y        # logical pixels
+./kde-window-rule.sh --remove
+```
+
+Bottom-right corner: `X = logical_width - 420 - margin`, `Y = logical_height - 282 - margin`. Get the logical size with `kscreen-doctor -o` (2560x1440 at scale 1.2 is 2134x1200 logical). Example, leaving room for a taskbar: `./kde-window-rule.sh 1694 850`. Restart Powermon after changing the rule. On other desktops use your compositor's window rules and match title or app id `powermon`.
+
+Because it is kept *below* other windows, a maximised or large window can cover it. Use the desktop-show shortcut to see it.
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -111,7 +124,8 @@ Your bill may also have a daily standing charge. Powermon ignores it, because it
 | Saver says "cancelled / not authorised" | you dismissed the password prompt or have no polkit agent running |
 | Saver says "powermon-saver not installed" | run `./install.sh` (or `--system-helper`) |
 | Saver stuck ON after a crash | click the button, or run `pkexec powermon-saver off`, or reboot |
-| Window is hidden behind others | it is pinned to the desktop layer by design; show the desktop to see it |
+| Window is hidden behind others | it is pinned to the desktop layer by design; show the desktop to see it, or run `./kde-window-rule.sh --remove` |
+| Window opens in a random spot | Wayland: set a position with `./kde-window-rule.sh X Y` (see Positioning) |
 
 ## License
 
