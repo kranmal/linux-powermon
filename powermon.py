@@ -31,6 +31,7 @@ CFG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.
 DATA_DIR = os.path.join(os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share")), "powermon")
 CFG_FILE = os.path.join(CFG_DIR, "config.json")
 USAGE_FILE = os.path.join(DATA_DIR, "usage.json")
+BASE_FILE = os.path.join(DATA_DIR, "baseline.json")  # avg wall watts with saver OFF
 DEFAULTS = {"rate": 25.0, "currency": "£", "other_w": 35.0, "psu_eff": 90.0}
 CPU_TDP, CPU_IDLE = 65.0, 10.0  # fallback estimate when no CPU energy sensor
 
@@ -178,6 +179,7 @@ class Powermon(QWidget):
         if demo:
             self.usage = {date.today().isoformat(): 1.84, date.today().strftime("%Y-%m-01"): 39.5}
             self.session_kwh = 0.62
+        self.base = load_json(BASE_FILE, {"wall": 0.0, "n": 0})  # learned "normal" draw
         self._save_t = time.monotonic()
         self._seen = False
         self.btn_rect = QRectF()
@@ -232,6 +234,13 @@ class Powermon(QWidget):
             self._seen = True
         self.hist.append(wall)
 
+        if self.demo:
+            self.eco = True
+            self.base = {"wall": wall + 41.0, "n": 999}
+        elif not self.eco and not self.eco_busy:
+            n = self.base["n"] + 1  # running mean at first, then ~5 min moving average
+            self.base["n"] = n
+            self.base["wall"] += max(1 / n, 0.003) * (wall - self.base["wall"])
         kwh = wall * dt / 3.6e6
         if self.demo:
             self.update()
@@ -246,6 +255,13 @@ class Powermon(QWidget):
     def save(self):
         self._save_t = time.monotonic()
         save_json(USAGE_FILE, self.usage)
+        save_json(BASE_FILE, self.base)
+
+    def saved_watts(self):
+        """Watts saved vs the learned normal draw; None until a baseline exists."""
+        if self.base["n"] < 30:
+            return None
+        return max(0.0, self.base["wall"] - self.p["wall"])
 
     def month_kwh(self):
         prefix = date.today().strftime("%Y-%m")
@@ -390,7 +406,13 @@ class Powermon(QWidget):
         elif self.eco_msg:
             label = self.eco_msg
         else:
-            label = "ENERGY SAVER: ON (click = off)" if self.eco else "ENERGY SAVER: OFF (click = on)"
+            sv = self.saved_watts()
+            if not self.eco:
+                label = "ENERGY SAVER: OFF (click = on)"
+            elif sv is None:
+                label = "SAVER ON: no baseline (click = off)"
+            else:
+                label = f"SAVER ON: saving ~{sv:.0f} W (click = off)"
         self.button(p, self.eco_rect, label,
                     QColor("#5fe3a1") if self.eco else QColor("#ffcf5c"), self.eco)
         self.btn_rect = QRectF(14 + 264 + 12, by, W - 28 - 264 - 12, 28)

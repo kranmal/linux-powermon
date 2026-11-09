@@ -18,7 +18,7 @@ Same look and feel as [Linux Sysmon](https://github.com/kranmal/linux-sysmon): a
 | **Usage** | kWh and cost for today, this session and this month (saved between runs) |
 | **If left on** | cost per day / month / year if the machine keeps drawing the current power |
 | **Settings** | button to change currency, unit rate, "other parts" watts and PSU efficiency any time |
-| **Energy Saver** | button that cuts CPU and GPU power to the minimum, and restores it on the next click |
+| **Energy Saver** | button that cuts CPU and GPU power to the minimum, shows the **watts saved**, and restores it on the next click |
 
 Interaction: **drag** with the left mouse button, **right-click** for settings, reset, opacity presets and quit.
 
@@ -54,6 +54,8 @@ The button runs the helper `powermon-saver` as root through `pkexec` (you get a 
 | CPU max frequency (`scaling_max_freq`) | lowest supported |
 | AMD GPU `power_dpm_force_performance_level` | `low` |
 | AMD GPU power cap (`power1_cap`) | its minimum |
+
+While the saver is on, the button shows **how many watts it is saving**: `SAVER ON: saving ~41 W`. Powermon learns your normal wall draw whenever the saver is off (a running average, stored in `~/.local/share/powermon/baseline.json`), then shows that average minus the current draw. It is an estimate: it compares against your *typical* draw, so it reads high if you turn the saver on while idle after a busy period, and low in the opposite case. Until it has about 30 seconds of saver-off data it shows `no baseline`. Turn the saver off for a short while to let it learn.
 
 Clicking again restores exactly the saved values. A reboot also resets everything, because these are runtime sysfs settings. The button state is read from the system, so it stays correct if something else changes the settings.
 
