@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Linux Powermon
+Comment=Transparent electricity cost overlay
+Exec=@EXEC@
+Icon=battery
+Terminal=false
+Categories=System;Monitor;Utility;
