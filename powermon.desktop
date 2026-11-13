@@ -3,6 +3,6 @@ Type=Application
 Name=Linux Powermon
 Comment=Transparent electricity cost overlay
 Exec=@EXEC@
-Icon=battery
+Icon=powermon
 Terminal=false
 Categories=System;Monitor;Utility;

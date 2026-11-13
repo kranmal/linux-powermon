@@ -8,13 +8,14 @@
 set -euo pipefail
 BIN="$HOME/.local/bin/powermon"
 APP="$HOME/.local/share/applications/powermon.desktop"
+ICON="$HOME/.local/share/icons/hicolor/scalable/apps/powermon.svg"
 AUTO="$HOME/.config/autostart/powermon.desktop"
 here="$(cd "$(dirname "$0")" && pwd)"
 
 [[ "$(uname -s)" == "Linux" ]] || { echo "Linux Powermon only supports Linux." >&2; exit 1; }
 
 if [[ "${1:-}" == "--uninstall" ]]; then
-  rm -f "$BIN" "$(dirname "$BIN")/powermon-saver" "$APP" "$AUTO"
+  rm -f "$BIN" "$(dirname "$BIN")/powermon-saver" "$APP" "$AUTO" "$ICON"
   [[ -e /usr/local/bin/powermon-saver ]] && echo "Also remove the root helper: sudo rm /usr/local/bin/powermon-saver"
   echo "Removed $BIN, $APP and $AUTO"; exit 0
 fi
@@ -26,9 +27,11 @@ for a in "$@"; do
   else extra+=("$a"); fi
 done
 
-mkdir -p "$(dirname "$BIN")" "$(dirname "$APP")"
+mkdir -p "$(dirname "$BIN")" "$(dirname "$APP")" "$(dirname "$ICON")"
 install -m 0755 "$here/powermon.py" "$BIN"
 install -m 0755 "$here/powermon-saver" "$(dirname "$BIN")/powermon-saver"
+install -m 0644 "$here/icon.svg" "$ICON"
+gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
 exec_line="$BIN"
 for a in "${extra[@]+"${extra[@]}"}"; do exec_line+=" \"$a\""; done
 sed "s|@EXEC@|${exec_line//|/\\|}|" "$here/powermon.desktop" > "$APP"

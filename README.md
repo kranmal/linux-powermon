@@ -22,6 +22,8 @@ Same look and feel as [Linux Sysmon](https://github.com/kranmal/linux-sysmon): a
 
 Interaction: **drag** with the left mouse button, **right-click** for settings, reset, opacity presets and quit.
 
+**Tray icon:** Powermon also puts a lightning-bolt icon in the system tray. Hover it for live watts and cost per hour, left-click to hide or show the overlay, right-click for settings, energy saver and quit. Hiding the overlay keeps Powermon running (usage keeps counting). If your desktop has no system tray, the icon is skipped and everything else works as before.
+
 ## How it works
 
 A PC has no wall-power sensor, so Powermon measures what it can and estimates the rest. **Everything estimated is marked with `*` on screen.**

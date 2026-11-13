@@ -20,10 +20,10 @@ from datetime import date
 
 import psutil
 from PySide6.QtCore import QProcess, QRectF, Qt, QTimer
-from PySide6.QtGui import QAction, QColor, QFont, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QAction, QColor, QFont, QIcon, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox,
                                QDoubleSpinBox, QFormLayout, QLabel, QLineEdit,
-                               QMenu, QWidget)
+                               QMenu, QSystemTrayIcon, QWidget)
 
 HIST = 60  # samples (1/s)
 W, H = 420, 282
@@ -86,6 +86,14 @@ def find_cpu_energy():
     rapl = [f for f in glob.glob("/sys/class/powercap/intel-rapl:?/energy_uj")
             if os.access(f, os.R_OK)]
     return rapl
+
+
+def app_icon():
+    """Themed 'powermon' icon (installed by install.sh), else icon.svg next to the script."""
+    ic = QIcon.fromTheme("powermon")
+    if ic.isNull():
+        ic = QIcon(os.path.join(os.path.dirname(os.path.realpath(__file__)), "icon.svg"))
+    return ic if not ic.isNull() else QIcon.fromTheme("battery")
 
 
 def saver_helper():
@@ -192,6 +200,38 @@ class Powermon(QWidget):
         t = QTimer(self)
         t.timeout.connect(self.sample)
         t.start(1000)
+        self.tray = self.make_tray()
+
+    # ---- system tray ----
+    def make_tray(self):
+        """Tray icon: click toggles the overlay, tooltip shows live watts and cost."""
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            return None
+        tray = QSystemTrayIcon(app_icon(), self)
+        tray.setToolTip("Linux Powermon")
+        m = QMenu(self)
+        self.tray_toggle = QAction("Hide", m)
+        self.tray_toggle.triggered.connect(self.toggle_visible)
+        m.addAction(self.tray_toggle)
+        for label, fn in (("Settings (rate, extras)…", self.settings),
+                          ("Energy saver: on / off", self.toggle_eco)):
+            a = QAction(label, m)
+            a.triggered.connect(fn)
+            m.addAction(a)
+        m.addSeparator()
+        q = QAction("Quit", m)
+        q.triggered.connect(QApplication.quit)
+        m.addAction(q)
+        tray.setContextMenu(m)
+        tray.activated.connect(lambda r: self.toggle_visible()
+                               if r == QSystemTrayIcon.ActivationReason.Trigger else None)
+        tray.show()
+        return tray
+
+    def toggle_visible(self):
+        self.setVisible(not self.isVisible())
+        if self.tray:
+            self.tray_toggle.setText("Hide" if self.isVisible() else "Show")
 
     def _read_energy(self):
         vals = [rd(f) for f in self.cpu_files]
@@ -233,6 +273,9 @@ class Powermon(QWidget):
             self.hist.extend([wall] * HIST)
             self._seen = True
         self.hist.append(wall)
+        if self.tray:
+            self.tray.setToolTip(f"Linux Powermon\n{wall:.0f} W · {self.money(self.cost(wall / 1000))}/h"
+                                 + ("\nEnergy saver on" if self.eco else ""))
 
         if self.demo:
             self.eco = True
@@ -440,6 +483,10 @@ class Powermon(QWidget):
         r = QAction("Reset today's + session totals", m)
         r.triggered.connect(self.reset)
         m.addAction(r)
+        if self.tray:
+            h = QAction("Hide to tray", m)
+            h.triggered.connect(self.toggle_visible)
+            m.addAction(h)
         m.addSeparator()
         for label, a in (("Opacity: clear", 0), ("Opacity: light", 60),
                          ("Opacity: medium", 130), ("Opacity: dark", 200)):
@@ -507,6 +554,8 @@ def main():
     app = QApplication([sys.argv[0]] + qt_args)
     app.setApplicationName("powermon")
     app.setDesktopFileName("powermon")
+    app.setWindowIcon(app_icon())
+    app.setQuitOnLastWindowClosed(False)  # keep running in the tray when the overlay is hidden
     cfg = {**DEFAULTS, **load_json(CFG_FILE, {})}
     if args.demo:
         cfg = {**DEFAULTS, "rate": 21.82}
